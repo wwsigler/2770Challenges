@@ -9,13 +9,39 @@
 
 void *connection_handler(void *socket_desc) {
     int sock = *(int*)socket_desc;
-    char *hello = "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: 12\n\nHello, world!";
-    write(sock, hello, strlen(hello));
+    char buffer[1024] = {0};
+    char method[16] = {0};
+    char url[1024] = {0};
+    char protocol[16] = {0};
+    char response[2048] = {0}; // This should be large enough to hold the response
+
+    // Read the request into the buffer
+    read(sock, buffer, sizeof(buffer));
+
+    // Use sscanf to parse the method, URL, and protocol from the request
+    sscanf(buffer, "%15s %1023s %15s", method, url, protocol); // Limit the input to prevent buffer overflow
+
+    // Construct the response
+    int content_length = strlen("Hello, world!"); // The content we want to send back
+    sprintf(response, 
+            "HTTP/1.1 200 OK\n"
+            "Content-Type: text/html\n"
+            "Content-Length: %d\n\n" // The length of the content
+            "Method: %s\n"
+            "URL: %s\n"
+            "Protocol: %s\n"
+            "Hello, world!\n\n", // The content
+            content_length, method, url, protocol);
+
+    // Send the response
+    write(sock, response, strlen(response));
+
     printf("Response sent\n");
     close(sock);
     free(socket_desc);
     return NULL;
 }
+
 
 int main() {
     int server_fd, new_socket, *new_sock;
